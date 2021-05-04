@@ -9,11 +9,12 @@ The current version of the [docgen Wiki](wiki/home) is in line with the work don
 1. Install the module using `pip`;
     - `pip install git+https://github.com/CloudCIX/docgen.git`
 2. Add `docgen` to `INSTALLED_APPS` in the Django settings file
-3. Set up Docstrings as per [this guide](#docstrings)
+3. Set up Docstrings as per [docgen Wiki](wiki/home)
 4. Add a `DOCS_PATH` setting to the Django settings file, giving a path to store the generated JSON file
 5. Run `python manage.py docgen <application>` to generate documentation for `<application>`
 
 *Example settings.py*
+
 ```python
 INSTALLED_APPS = [
     ...
