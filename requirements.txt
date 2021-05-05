@@ -1,0 +1,5 @@
+cloudcix
+django==2.2
+openapi-spec-validator==0.2.9
+pyyaml
+serpy
