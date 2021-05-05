@@ -2,14 +2,14 @@
 
 A documentation generator that reads docstrings and variables defined in the `controllers`, `permissions`, `serializers`, `urls`, and `views` of a CloudCIX Application, and uses the details to generate OpenAPI compliant JSON to be used by https://docs.cloudcix.com.
 
-The current version of the [docgen Wiki](wiki/home) is in line with the work done in the Membership Python 3 Application, so look to that if there's any confusion.
+The current version of the [docgen Wiki](../../wiki/home) is in line with the work done in the Membership Python 3 Application, so look to that if there's any confusion.
 
 ## Usage
 
 1. Install the module using `pip`;
     - `pip install git+https://github.com/CloudCIX/docgen.git`
 2. Add `docgen` to `INSTALLED_APPS` in the Django settings file
-3. Set up Docstrings as per [docgen Wiki](wiki/home)
+3. Set up Docstrings as per [docgen Wiki](../../wiki/home)
 4. Add a `DOCS_PATH` setting to the Django settings file, giving a path to store the generated JSON file
 5. Run `python manage.py docgen <application>` to generate documentation for `<application>`
 
@@ -45,15 +45,15 @@ Also, since some docstrings are parsed with YAML, it is recommended to look at t
 In order to get as much information into the docstrings as possible, without making them look ugly, we're going to use a YAML subset for most docstrings.
 The docgen tool uses `yaml.load` on the following docstrings;
 
-- [Controller Validation Methods](wiki/validation_methods)
-- [Serializers](wiki/serializers)
-- [View Methods](wiki/view_methods) (`get`, `post`, `put` and `delete`)
+- [Controller Validation Methods](../../wiki/validation_methods)
+- [Serializers](../../wiki/serializers)
+- [View Methods](../../wiki/view_methods) (`get`, `post`, `put` and `delete`)
 
 The docgen tool also pulls docstrings from the following locations, albeit not parsing them as YAML;
 
-- [`__init__.py`](wiki/init)
-- [View Files](wiki/view_files)
-- [Permission Methods](wiki/permission_methods)
+- [`__init__.py`](../../wiki/init)
+- [View Files](../../wiki/view_files)
+- [Permission Methods](../../wiki/permission_methods)
 
 The structure of the docstrings are outlined in their respective wiki entries.
 
