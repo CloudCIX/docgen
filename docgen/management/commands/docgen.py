@@ -727,13 +727,6 @@ order, while `?order=-field` orders in descending order instead.
         Given a permission method, parse docstrings and generate verbose permission details
         """
         perm_doc = self.ensure_docstring(permission_method)
-        if 'persoa' in perm_doc.lower():
-            self.logger.error(
-                f'parse_permissions: persoa is mentioned in the docstring for {self.module_name}.permissions.'
-                f'{self.model_name.lower()}.{permission_method.__name__}',
-            )
-            self.errors = True
-            return ''
         # Check if ' -' exists in the docstring to prevent use of indented lists for docstrings
         if ' -' in perm_doc:
             self.logger.error(
