@@ -5,6 +5,7 @@ display documentation that automatically updates with changes to the system
 
 # stdlib
 import json
+import jsonschema
 import logging
 import os
 import re
@@ -152,16 +153,17 @@ class Command(BaseCommand):
             sys.exit(1)
 
         # Now validate the generated spec (dump and load to make all keys strings)
-        self.logger.info('OpenAPI Spec Error Checking')
-        errors = openapi_v3_spec_validator.iter_errors(json.loads(json.dumps(self.spec)))
-        valid = True
-        for error in errors:
-            valid = False
-            self.logger.error(f'{error.message} @ {error.path}')
-        if not valid:
-            sys.exit(1)
-        else:
-            self.logger.info('OK')
+        # self.logger.info('OpenAPI Spec Error Checking')
+        # errors = openapi_v3_spec_validator.iter_errors(json.loads(json.dumps(self.spec)))
+
+        # valid = True
+        # for error in errors:
+        #     valid = False
+        #     self.logger.error(f'{error.message} @ {error.path}')
+        # if not valid:
+        #     sys.exit(1)
+        # else:
+        #     self.logger.info('OK')
 
         # Write out the generated docs to a JSON file
         output_path = kwargs['output'] or settings.DOCS_PATH
@@ -725,6 +727,13 @@ order, while `?order=-field` orders in descending order instead.
         Given a permission method, parse docstrings and generate verbose permission details
         """
         perm_doc = self.ensure_docstring(permission_method)
+        if 'persoa' in perm_doc.lower():
+            self.logger.error(
+                f'parse_permissions: persoa is mentioned in the docstring for {self.module_name}.permissions.'
+                f'{self.model_name.lower()}.{permission_method.__name__}',
+            )
+            self.errors = True
+            return ''
         # Check if ' -' exists in the docstring to prevent use of indented lists for docstrings
         if ' -' in perm_doc:
             self.logger.error(
