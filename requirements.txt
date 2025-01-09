@@ -1,5 +1,5 @@
 cloudcix
-django==2.2
+django==5.0.10
 openapi-spec-validator==0.2.9
 pyyaml
 serpy
