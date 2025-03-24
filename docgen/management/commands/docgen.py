@@ -405,8 +405,8 @@ class Command(BaseCommand):
                 )
             else:
                 self.controller_class = getattr(self.controller_mod, explicit_controller_name, None)
-            if self.controller_class is not None:
-                self.parse_input_schema()
+        if self.controller_class is not None:
+            self.parse_input_schema()
 
     def parse_input_schema(self):
         """
@@ -416,7 +416,16 @@ class Command(BaseCommand):
         controller_name = self.controller_class.__name__
         schema_name = controller_name.replace('Controller', '')
         # Iterate through the Controller.Meta.validation_order to get field names and add them to the requestBody
-        operation = 'create' if 'Create' in schema_name else 'update'
+        if 'Create' in schema_name:
+            operation = 'create'
+        elif 'Update' in schema_name:
+            operation = 'update'
+        else:
+            operation = 'list'
+
+        if operation == 'list' and self.controller_class.Meta.validation_order == ('search', 'exclude', 'limit', 'page', 'order'):
+            return
+
         self.method_spec['requestBody'] = {
             'description': f'Data required to {operation} a record',
             'required': True,
