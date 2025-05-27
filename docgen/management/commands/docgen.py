@@ -236,7 +236,7 @@ class Command(BaseCommand):
         class_name = view_class.__name__
         self.logger.debug(f'\tparse_view_class: Parsing {class_name}')
         self.get_is_list = 'Collection' in class_name
-        self.model_name = class_name.replace('Collection', '').replace('Resource', '')
+        self.model_name = class_name.removesuffix('Collection').removesuffix('Resource')
 
         # Check for Serializer and parse the output schemas
         # First check if the user has defined a specific serializer class on the view class
