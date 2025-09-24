@@ -11,7 +11,7 @@ DEFAULT_SPEC = {
     },
     'tags': [],
     'security': [
-        {'api_key': []},
+        {'XAuthToken': []},
     ],
     'paths': {},
     'components': {
@@ -67,7 +67,7 @@ DEFAULT_SPEC = {
             },
         },
         'securitySchemes': {
-            'auth_token': {
+            'XAuthToken': {
                 'type': 'apiKey',
                 'in': 'header',
                 'name': 'X-Auth-Token',
@@ -161,7 +161,7 @@ DEFAULT_LIST_PARAMETERS = [
         'description': 'The limit of the number of objects returned per page',
         'required': False,
         'schema': {
-            'type': 'integer',
+            'type': 'number',
             'minimum': 0,
             'maximum': 100,
             'default': 50,
@@ -185,7 +185,7 @@ DEFAULT_LIST_PARAMETERS = [
         'description': 'The page of records to return, assuming `limit` number of records per page.',
         'required': False,
         'schema': {
-            'type': 'integer',
+            'type': 'number',
             'minimum': 0,
             'default': 0,
         },
