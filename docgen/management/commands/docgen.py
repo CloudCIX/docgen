@@ -634,6 +634,18 @@ class Command(BaseCommand):
                         '$ref': f'#/components/schemas/{self.model_name}',
                     },
                 },
+                'count': {
+                    'description': 'Maximum number of records returned per page.',
+                    'type': 'integer',
+                },
+                'page': {
+                    'description': 'Page number of the current results.',
+                    'type': 'integer',
+                },
+                'total': {
+                    'description': 'Total number of matching records.',
+                    'type': 'integer',
+                },
                 '_metadata': {
                     '$ref': '#/components/schemas/ListMetadata',
                 },
@@ -822,18 +834,6 @@ order, while `?order=-field` orders in descending order instead.
                     elif str(code) == '200' and self.method_name == 'get' and self.get_is_list:
                         default['application/json']['schema']['$ref'] = f'#/components/schemas/{self.model_name}List'
                         details['content'] = default
-                        details['count'] = {
-                            'type': 'integer',
-                            'description': 'Maximum number of records returned per page.',
-                        }
-                        details['page'] = {
-                            'type': 'integer',
-                            'description': 'Page number of the current results.',
-                        }
-                        details['total'] = {
-                            'type': 'integer',
-                            'description': 'Total number of matching records.',
-                        }
 
             # Remove anything that has its value as 'none' (i.e. to have no content)
             for k in list(details.keys()):
