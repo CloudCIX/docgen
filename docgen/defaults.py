@@ -161,7 +161,7 @@ DEFAULT_LIST_PARAMETERS = [
         'description': 'The limit of the number of objects returned per page',
         'required': False,
         'schema': {
-            'type': 'number',
+            'type': 'integer',
             'minimum': 0,
             'maximum': 100,
             'default': 50,
@@ -185,7 +185,7 @@ DEFAULT_LIST_PARAMETERS = [
         'description': 'The page of records to return, assuming `limit` number of records per page.',
         'required': False,
         'schema': {
-            'type': 'number',
+            'type': 'integer',
             'minimum': 0,
             'default': 0,
         },
