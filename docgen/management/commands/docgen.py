@@ -206,6 +206,10 @@ class Command(BaseCommand):
         """
         Create a tag entry for the current view file in self.view
         """
+        # File-level exclusion
+        if getattr(self.view_file, "exclude_from_docs", False):
+            self.logger.info(f"Skipping tag for excluded file: {self.view_file.__name__}")
+            return
         name = self.get_tag_name(self.view_file)
         self.logger.debug(f'parse_view_file: Parsing {name}')
         description = (self.ensure_docstring(self.view_file) or '').strip()
@@ -216,6 +220,11 @@ class Command(BaseCommand):
         Given a URL pattern object, begin creating a new path and parse the view class for details
         """
         view_class_name = urlpattern.lookup_str.split('.')[-1]
+        view_class = getattr(self.view_module, view_class_name)
+        if getattr(view_class, "exclude_from_docs", False):
+            self.logger.info(f"Skipping {view_class.__name__} (excluded)")
+            return
+
         view_file_str = '.'.join(urlpattern.lookup_str.split('.')[:-1])
         self.url = self.get_url(str(urlpattern.pattern))
         self.logger.debug(f'parse_urlpattern: Parsing {self.url}')
@@ -226,7 +235,6 @@ class Command(BaseCommand):
         self.tag = self.get_tag_name(service_file)
 
         # Parse the view class
-        view_class = getattr(self.view_module, view_class_name)
         self.parse_view_class(view_class)
 
     def parse_view_class(self, view_class: types.ModuleType):
@@ -455,7 +463,11 @@ class Command(BaseCommand):
             'required': [],
             'properties': {}
         }
+        hidden = getattr(self.controller_class, "hidden_fields", [])
         for field in self.controller_class.Meta.validation_order:
+            if field in hidden:
+                self.logger.info(f"Skipping hidden field in docs: {field}")
+                continue
             # Get the method and the doc string from the method and parse the YAML
             validator = getattr(self.controller_class, f'validate_{field}', None)
             if validator is None:
@@ -726,13 +738,18 @@ class Command(BaseCommand):
         """
         Given a list controller class, parse docstrings and Metadata to generate search / exclude and ordering details
         """
+        # 👇 Look for hidden search fields on the controller
+        hidden_search = getattr(self.controller_class, "hidden_fields", [])
         all_filters = '\n'.join([
             f'- {field} ({", ".join(modifiers)})' if len(modifiers) > 0 else f'- {field}'
             for field, modifiers in self.controller_class.Meta.search_fields.items()
+            if field not in hidden_search   # 👈 skip hidden ones
         ])
+
         all_orders = '\n'.join([
             f'- {field}' if i > 0 else f'- {field} (default)'
             for i, field in enumerate(self.controller_class.Meta.allowed_ordering)
+            if field not in hidden_search   # 👈 skip hidden ones
         ])
         return self.doc_trim(f"""
 ## Filtering
