@@ -387,32 +387,42 @@ class Command(BaseCommand):
             f'\t\t\tparse_controller: Attempting to parse Controller for {self.model_name}.{self.method_name}',
         )
         # Check if this is a list method and if so, add filter and order details to description, and add params
-        if self.method_name == 'get' and self.get_is_list:
-            if explicit_controller_name is None:
-                self.controller_class = getattr(self.controller_mod, f'{self.model_name}ListController', None)
+        if self.method_name == 'get':
+            if self.get_is_list:
+                if explicit_controller_name is None:
+                    self.controller_class = getattr(self.controller_mod, f'{self.model_name}ListController', None)
+                else:
+                    self.controller_class = getattr(self.controller_mod, explicit_controller_name, None)
+                if self.controller_class is not None:
+                    try:
+                        self.method_spec['description'] += '\n\n' + self.get_list_details()
+                    except KeyError:
+                        self.logger.error(f'parse_controller: No list description found for {self.url}', exc_info=True)
+                        self.errors = True
+                        return
+                # Also add the default parameters
+                self.method_spec.setdefault('parameters', [])
+                self.method_spec['parameters'] += defaults.DEFAULT_LIST_PARAMETERS
             else:
-                self.controller_class = getattr(self.controller_mod, explicit_controller_name, None)
-            if self.controller_class is not None:
-                try:
-                    self.method_spec['description'] += '\n\n' + self.get_list_details()
-                except KeyError:
-                    self.logger.error(f'parse_controller: No list description found for {self.url}', exc_info=True)
-                    self.errors = True
-                    return
-            # Also add the default parameters
-            self.method_spec.setdefault('parameters', [])
-            self.method_spec['parameters'] += defaults.DEFAULT_LIST_PARAMETERS
+               if explicit_controller_name is None:
+                    self.controller_class = getattr(self.controller_mod, f'{self.model_name}ReadController', None) 
         # Otherwise, check if it is a create or update request and parse the requestBody details from the controller
-        elif self.method_name in ['post', 'put']:
-            if explicit_controller_name is None:
-                controller_type = 'Create' if self.method_name == 'post' else 'Update'
-                self.controller_class = getattr(
-                    self.controller_mod,
-                    f'{self.model_name}{controller_type}Controller',
-                    None,
-                )
+        else:
+            if self.method_name == 'post':
+                controller_type = 'Create'
+            elif self.method_name == 'put':
+                controller_type = 'Update'
+            elif self.method_name == 'patch':
+                controller_type = 'Update'
+            elif self.method_name == 'delete':
+                controller_type = 'Delete'
             else:
-                self.controller_class = getattr(self.controller_mod, explicit_controller_name, None)
+                return
+            self.controller_class = getattr(
+                self.controller_mod,
+                f'{self.model_name}{controller_type}Controller',
+                None,
+            )
         if self.controller_class is not None:
             self.parse_input_schema()
 
@@ -428,8 +438,10 @@ class Command(BaseCommand):
             operation = 'create'
         elif 'Update' in schema_name:
             operation = 'update'
-        else:
+        elif 'List' in schema_name:
             operation = 'list'
+        else:
+            return
 
         if operation == 'list' and self.controller_class.Meta.validation_order == ('search', 'exclude', 'limit', 'page', 'order'):
             return
@@ -634,6 +646,18 @@ class Command(BaseCommand):
                         '$ref': f'#/components/schemas/{self.model_name}',
                     },
                 },
+                'count': {
+                    'description': 'Maximum number of records returned per page.',
+                    'type': 'integer',
+                },
+                'page': {
+                    'description': 'Page number of the current results.',
+                    'type': 'integer',
+                },
+                'total': {
+                    'description': 'Total number of matching records.',
+                    'type': 'integer',
+                },
                 '_metadata': {
                     '$ref': '#/components/schemas/ListMetadata',
                 },
@@ -818,8 +842,7 @@ order, while `?order=-field` orders in descending order instead.
                     # Skip code 204 because it doesn't matter
 
                     # If created, read or updated
-                    if str(code) == '201' or (str(code) == '200' and (
-                            self.method_name != 'get' or not self.get_is_list)):
+                    if str(code) == '201' or (str(code) == '200' and (self.method_name != 'get' or not self.get_is_list)):
                         # Return <Model>Response
                         default['application/json']['schema']['$ref'] = (
                             f'#/components/schemas/{self.model_name}Response'

@@ -11,7 +11,7 @@ DEFAULT_SPEC = {
     },
     'tags': [],
     'security': [
-        {'api_key': []},
+        {'XAuthToken': []},
     ],
     'paths': {},
     'components': {
@@ -67,7 +67,7 @@ DEFAULT_SPEC = {
             },
         },
         'securitySchemes': {
-            'auth_token': {
+            'XAuthToken': {
                 'type': 'apiKey',
                 'in': 'header',
                 'name': 'X-Auth-Token',
