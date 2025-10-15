@@ -520,8 +520,7 @@ class Command(BaseCommand):
             perm_method_name = 'list' if self.get_is_list else 'read'
         else:
             perm_method_name = METHOD_NAME_MAP[self.method_name]
-        a = getattr(permission_file, 'Permissions', None)
-        permission_method = getattr(a, perm_method_name, None)
+        permission_method = getattr(getattr(permission_file, 'Permissions', None), perm_method_name, None)
         if permission_method is not None:
             self.method_spec['description'] += '\n\n' + self.get_permission_details(permission_method)
 
