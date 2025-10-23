@@ -151,9 +151,25 @@ class Command(BaseCommand):
             self.logger.error('ERRORS FOUND WHEN PARSING DOCUMENTATION')
             sys.exit(1)
 
-        # Now validate the generated spec (dump and load to make all keys strings)
+        # Dump and reload to force all keys to strings
+        spec_json = json.loads(json.dumps(self.spec))
+
+        # Strip x-scope from reloaded spec
+        def strip_x_scope(obj):
+            if isinstance(obj, dict):
+                if '$ref' in obj and 'x-scope' in obj:
+                    del obj['x-scope']
+                for k, v in obj.items():
+                    strip_x_scope(v)
+            elif isinstance(obj, list):
+                for item in obj:
+                    strip_x_scope(item)
+
+        strip_x_scope(spec_json)
+
+        # Validate cleaned spec
         self.logger.info('OpenAPI Spec Error Checking')
-        errors = openapi_v3_spec_validator.iter_errors(json.loads(json.dumps(self.spec)))
+        errors = openapi_v3_spec_validator.iter_errors(spec_json)
         valid = True
         for error in errors:
             valid = False
@@ -166,7 +182,7 @@ class Command(BaseCommand):
         # Write out the generated docs to a JSON file
         output_path = kwargs['output'] or settings.DOCS_PATH
         with open(output_path, 'w') as f:
-            json.dump(self.spec, f, sort_keys=True)
+            json.dump(spec_json, f, sort_keys=True)
         end = perf_counter()
 
         self.logger.info(f'Documentation generated in {end - start} seconds!')
@@ -463,6 +479,7 @@ class Command(BaseCommand):
             'required': [],
             'properties': {}
         }
+        request_examples = {}
         hidden = getattr(self.controller_class, "hidden_fields", [])
         for field in self.controller_class.Meta.validation_order:
             if field in hidden:
@@ -483,6 +500,13 @@ class Command(BaseCommand):
                 )
                 self.errors = True
                 continue
+            if not isinstance(field_data, dict):
+                self.logger.error(
+                    f'parse_input_schema: Expected dict for {controller_name}.validate_{field}, got {type(field_data)}',
+                    exc_info=True,
+                )
+                self.errors = True
+                return
             # Skip generative methods
             if field_data.get('generative', False):
                 continue
@@ -497,6 +521,7 @@ class Command(BaseCommand):
                 )
                 self.errors = True
                 return
+
             # Check for required keys
             necessary_keys = {'description', 'type'}
             present_keys = set(field_data.keys())
@@ -508,10 +533,21 @@ class Command(BaseCommand):
                     )
                     self.errors = True
                     return
-            schema['properties'][field] = field_data
+            # Build field schema safely
+            field_schema = {k: v for k, v in field_data.items() if k not in ('example', 'examples')}
+            if 'example' in field_data:
+                field_schema['example'] = field_data['example']
+            if 'examples' in field_data:
+                for name, example in field_data['examples'].items():
+                    if name not in request_examples:
+                        request_examples[name] = {'summary': example.get('summary', ''), 'value': {}}
+                    request_examples[name]['value'][field] = example['value']
+            schema['properties'][field] = field_schema
         # If required is empty, remove it
         if schema['required'] == []:
             schema.pop('required')
+        if request_examples:
+            self.method_spec['requestBody']['content']['application/json']['examples'] = request_examples
         # Add the schema to the docs
         self.spec['components']['schemas'][schema_name] = schema
 
