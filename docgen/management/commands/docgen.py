@@ -540,7 +540,11 @@ class Command(BaseCommand):
             if 'examples' in field_data:
                 for name, example in field_data['examples'].items():
                     if name not in request_examples:
-                        request_examples[name] = {'summary': example.get('summary', ''), 'value': {}}
+                        request_examples[name] = {
+                            'summary': example.get('summary', ''),
+                            'description': example.get('description', ''),
+                            'value': {},
+                        }
                     request_examples[name]['value'][field] = example['value']
             schema['properties'][field] = field_schema
         # If required is empty, remove it
