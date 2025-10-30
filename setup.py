@@ -10,7 +10,7 @@ with open('requirements.txt', 'r') as f:
 
 setup(
     name='docgen',
-    version='1.3.0',
+    version='1.4.0',
     description='OpenAPI Documentation Generator for CloudCIX Applications',
     long_description=readme,
     author='CloudCIX',

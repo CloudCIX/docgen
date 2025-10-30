@@ -22,6 +22,7 @@ from cloudcix_rest.views import APIView
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.urls import path
+from django.urls.resolvers import URLPattern, URLResolver
 from openapi_spec_validator import openapi_v3_spec_validator
 from serpy.serializer import SerializerMeta
 # local
@@ -231,24 +232,42 @@ class Command(BaseCommand):
         description = (self.ensure_docstring(self.view_file) or '').strip()
         self.spec['tags'].append({'name': name, 'description': description})
 
-    def parse_urlpattern(self, urlpattern: path):
+    def parse_urlpattern(self, urlpattern):
         """
-        Given a URL pattern object, begin creating a new path and parse the view class for details
+        Given a URL pattern object, begin creating a new path and parse the view class for details.
+        Supports nested includes.
         """
-        view_class_name = urlpattern.lookup_str.split('.')[-1]
-        view_class = getattr(self.view_module, view_class_name)
+        # --- Case 1: This is an include(), so recurse ---
+        if isinstance(urlpattern, URLResolver):
+            self.logger.debug(f"Descending into include: {urlpattern.pattern}")
+            for subpattern in urlpattern.url_patterns:
+                self.parse_urlpattern(subpattern)
+            return
+
+        # --- Case 2: A normal path() pattern bound to a view ---
+        if not isinstance(urlpattern, URLPattern):
+            self.logger.warning(f"Skipping unexpected pattern type: {type(urlpattern)}")
+            return
+
+        try:
+            view_class_name = urlpattern.lookup_str.split('.')[-1]
+            view_file_str = '.'.join(urlpattern.lookup_str.split('.')[:-1])
+            view_module = import_module(view_file_str)
+            view_class = getattr(view_module, view_class_name)
+        except Exception as e:
+            self.logger.error(f"Failed to import view from {urlpattern.lookup_str}: {e}")
+            return
+
         if getattr(view_class, "exclude_from_docs", False):
             self.logger.info(f"Skipping {view_class.__name__} (excluded)")
             return
 
-        view_file_str = '.'.join(urlpattern.lookup_str.split('.')[:-1])
         self.url = self.get_url(str(urlpattern.pattern))
         self.logger.debug(f'parse_urlpattern: Parsing {self.url}')
         self.spec['paths'][self.url] = {}
 
         # Get the tag to add to all of the methods in the service
-        service_file = import_module(view_file_str)
-        self.tag = self.get_tag_name(service_file)
+        self.tag = self.get_tag_name(view_module)
 
         # Parse the view class
         self.parse_view_class(view_class)
@@ -540,11 +559,7 @@ class Command(BaseCommand):
             if 'examples' in field_data:
                 for name, example in field_data['examples'].items():
                     if name not in request_examples:
-                        request_examples[name] = {
-                            'summary': example.get('summary', ''),
-                            'description': example.get('description', ''),
-                            'value': {},
-                        }
+                        request_examples[name] = {'summary': example.get('summary', ''), 'value': {}}
                     request_examples[name]['value'][field] = example['value']
             schema['properties'][field] = field_schema
         # If required is empty, remove it
